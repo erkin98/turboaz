@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}Cars - Turbo.az Monitor{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-car"></i> Found Cars</h2>
+            <p class="text-muted">All cars found by the monitoring system with detailed specifications</p>
+        </div>
+    </div>
+
+    {% if cars %}
+    <div class="row">
+        {% for car in cars %}
+        <div class="col-xl-4 col-lg-6 col-md-6 mb-4">
+            <div class="card h-100 shadow-sm car-card">
+                <div class="position-relative">
+                    {% if car.image_url %}
+                    <img src="{{ car.image_url }}" class="card-img-top" alt="{{ car.title }}" 
+                         style="height: 250px; object-fit: cover;">
+                    {% else %}
+                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" 
+                         style="height: 250px;">
+                        <i class="fas fa-car fa-3x text-muted"></i>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Price badge -->
+                    <div class="position-absolute top-0 end-0 m-2">
+                        <span class="badge bg-primary fs-6">{{ car.price }}</span>
+                    </div>
+                    
+                    <!-- New badge if applicable -->
+                    {% if car.is_new and car.is_new.lower() == 'bəli' %}
+                    <div class="position-absolute top-0 start-0 m-2">
+                        <span class="badge bg-success">New</span>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">{{ car.title }}</h5>
+                    
+                    <!-- Enhanced car details -->
+                    <div class="car-details mb-3 flex-grow-1">
+                        <div class="row g-2 mb-2">
+                            {% if car.year %}
+                            <div class="col-6">
+                                <small class="text-muted d-block">📅 Year</small>
+                                <strong>{{ car.year }}</strong>
+                            </div>
+                            {% endif %}
+                            {% if car.mileage %}
+                            <div class="col-6">
+                                <small class="text-muted d-block">🔄 Mileage</small>
+                                <strong>{{ car.mileage }}</strong>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="row g-2 mb-2">
+                            {% if car.city %}
+                            <div class="col-6">
+                                <small class="text-muted d-block">📍 City</small>
+                                <strong>{{ car.city }}</strong>
+                            </div>
+                            {% endif %}
+                            {% if car.color %}
+                            <div class="col-6">
+                                <small class="text-muted d-block">🎨 Color</small>
+                                <strong>{{ car.color }}</strong>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if car.engine_details or car.engine %}
+                        <div class="mb-2">
+                            <small class="text-muted d-block">⚙️ Engine</small>
+                            <strong>{{ car.engine_details or car.engine }}</strong>
+                        </div>
+                        {% endif %}
+                        
+                        {% if car.transmission %}
+                        <div class="mb-2">
+                            <small class="text-muted d-block">🔧 Transmission</small>
+                            <strong>{{ car.transmission }}</strong>
+                        </div>
+                        {% endif %}
+                        
+                        {% if car.condition_info %}
+                        <div class="mb-2">
+                            <small class="text-muted d-block">🔍 Condition</small>
+                            <strong class="text-truncate d-block" title="{{ car.condition_info }}">{{ car.condition_info }}</strong>
+                        </div>
+                        {% endif %}
+                        
+                        {% if car.owners %}
+                        <div class="mb-2">
+                            <small class="text-muted d-block">👥 Owners</small>
+                            <strong>{{ car.owners }}</strong>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Found date -->
+                    <small class="text-muted mb-3">
+                        <i class="fas fa-clock"></i> Found: {{ car.found_at.split('T')[0] }}
+                        {% if car.notified %}
+                        <span class="badge bg-success ms-2">Notified</span>
+                        {% endif %}
+                    </small>
+                    
+                    <!-- Action buttons -->
+                    <div class="btn-group w-100" role="group">
+                        <a href="{{ url_for('car_detail', car_id=car.car_id) }}" class="btn btn-outline-primary">
+                            <i class="fas fa-info-circle"></i> Details
+                        </a>
+                        <a href="{{ car.url }}" target="_blank" class="btn btn-primary">
+                            <i class="fas fa-external-link-alt"></i> View
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if has_next or page > 1 %}
+    <nav aria-label="Cars pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page > 1 %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('cars_page', page=page-1) }}">
+                    <i class="fas fa-chevron-left"></i> Previous
+                </a>
+            </li>
+            {% endif %}
+            
+            <li class="page-item active">
+                <span class="page-link">Page {{ page }}</span>
+            </li>
+            
+            {% if has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('cars_page', page=page+1) }}">
+                    Next <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <!-- No cars found -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-car fa-5x text-muted mb-3"></i>
+                    <h4 class="text-muted">No cars found yet</h4>
+                    <p class="text-muted">Start monitoring to find cars matching your criteria</p>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-primary">
+                        <i class="fas fa-tachometer-alt"></i> Go to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.car-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: none;
+}
+
+.car-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.car-details small {
+    font-size: 0.75rem;
+}
+
+.car-details strong {
+    font-size: 0.85rem;
+}
+
+.badge {
+    font-size: 0.75rem;
+}
+
+.btn-group .btn {
+    flex: 1;
+}
+
+.card-img-top {
+    border-radius: 0.375rem 0.375rem 0 0;
+}
+
+.text-truncate {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Enhanced responsive design */
+@media (max-width: 768px) {
+    .col-xl-4, .col-lg-6, .col-md-6 {
+        margin-bottom: 1rem;
+    }
+    
+    .card-title {
+        font-size: 1rem;
+    }
+    
+    .car-details {
+        font-size: 0.85rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Auto-refresh every 30 seconds if monitoring is active
+    setInterval(function() {
+        fetch('/api/status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.is_monitoring) {
+                    // Refresh page silently if new cars might be available
+                    location.reload();
+                }
+            })
+            .catch(() => {});
+    }, 30000);
+    
+    // Add tooltips to notification icons
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
+{% endblock %} 

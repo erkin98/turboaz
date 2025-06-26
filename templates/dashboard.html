@@ -1,0 +1,405 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Turbo.az Car Monitor{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Statistics Cards -->
+    <div class="col-md-3 mb-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <i class="bi bi-car-front text-primary mb-2" style="font-size: 2rem;"></i>
+                <div class="stat-number">{{ stats.total_cars }}</div>
+                <div class="text-muted">Total Cars Found</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <i class="bi bi-calendar-today text-success mb-2" style="font-size: 2rem;"></i>
+                <div class="stat-number">{{ stats.today_cars }}</div>
+                <div class="text-muted">Found Today</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <i class="bi bi-calendar-week text-info mb-2" style="font-size: 2rem;"></i>
+                <div class="stat-number">{{ stats.week_cars }}</div>
+                <div class="text-muted">This Week</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <i class="bi bi-telegram text-primary mb-2" style="font-size: 2rem;"></i>
+                <div class="stat-number">
+                    {% if bot_configured %}
+                        <i class="bi bi-check-circle text-success"></i>
+                    {% else %}
+                        <i class="bi bi-x-circle text-danger"></i>
+                    {% endif %}
+                </div>
+                <div class="text-muted">Telegram Bot</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Control Panel -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-gear"></i> Control Panel
+                </h5>
+                <span class="badge bg-{{ 'success' if is_monitoring else 'secondary' }}">
+                    {{ 'Running' if is_monitoring else 'Stopped' }}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Monitoring Control</h6>
+                        <p class="text-muted">Start or stop the car monitoring process</p>
+                        
+                        <div class="btn-group" role="group">
+                            <button id="start-btn" class="btn btn-success btn-custom" onclick="startMonitoring()" 
+                                    {{ 'disabled' if is_monitoring }}>
+                                <i class="bi bi-play-fill"></i> Start Monitoring
+                            </button>
+                            <button id="stop-btn" class="btn btn-danger btn-custom" onclick="stopMonitoring()"
+                                    {{ 'disabled' if not is_monitoring }}>
+                                <i class="bi bi-stop-fill"></i> Stop Monitoring
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6>System Tests</h6>
+                        <p class="text-muted">Test your configuration</p>
+                        
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-outline-primary btn-custom" onclick="testScraper()">
+                                <i class="bi bi-globe"></i> Test Scraper
+                            </button>
+                            <button class="btn btn-outline-primary btn-custom" onclick="testTelegram()"
+                                    {{ 'disabled' if not bot_configured }}>
+                                <i class="bi bi-telegram"></i> Test Telegram
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Current Search Filters -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-funnel"></i> Current Search Filters
+                </h5>
+                <a href="{{ url_for('settings_page') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-pencil"></i> Edit Filters
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <small class="text-muted d-block">Price Range</small>
+                                <strong>
+                                    {% if filters.price_from %}{{ filters.price_from }}{% else %}0{% endif %} - 
+                                    {% if filters.price_to %}{{ filters.price_to }}{% else %}∞{% endif %} {{ filters.currency.upper() if filters.currency else 'AZN' }}
+                                </strong>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted d-block">Year Range</small>
+                                <strong>
+                                    {% if filters.year_from %}{{ filters.year_from }}{% else %}Any{% endif %} - 
+                                    {% if filters.year_to %}{{ filters.year_to }}{% else %}Any{% endif %}
+                                </strong>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted d-block">Engine Size</small>
+                                <strong>
+                                    {% set engine_from_display = (filters.engine_from|int / 1000) if filters.engine_from and filters.engine_from|int > 100 else filters.engine_from %}
+                                    {% set engine_to_display = (filters.engine_to|int / 1000) if filters.engine_to and filters.engine_to|int > 100 else filters.engine_to %}
+                                    {% if engine_from_display %}{{ engine_from_display }}L{% endif %}
+                                    {% if engine_from_display and engine_to_display %} - {% endif %}
+                                    {% if engine_to_display %}{{ engine_to_display }}L{% endif %}
+                                    {% if not engine_from_display and not engine_to_display %}Any{% endif %}
+                                </strong>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted d-block">Max Mileage</small>
+                                <strong>{% if filters.mileage_to %}{{ filters.mileage_to }} km{% else %}Any{% endif %}</strong>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-2">
+                                <small class="text-muted d-block">Condition</small>
+                                <span class="badge bg-secondary">
+                                    {% if filters.condition == 'new' %}New Only
+                                    {% elif filters.condition == 'used' %}Used Only
+                                    {% else %}All{% endif %}
+                                </span>
+                            </div>
+                            <div class="col-md-2">
+                                <small class="text-muted d-block">Currency</small>
+                                <span class="badge bg-info">{{ filters.currency.upper() if filters.currency else 'AZN' }}</span>
+                            </div>
+                            <div class="col-md-2">
+                                <small class="text-muted d-block">Gear</small>
+                                <span class="badge bg-warning text-dark">
+                                    {% if filters.gear == '1' %}Auto
+                                    {% elif filters.gear == '2' %}Manual
+                                    {% else %}Default{% endif %}
+                                </span>
+                            </div>
+                            <div class="col-md-2">
+                                <small class="text-muted d-block">Drive</small>
+                                <span class="badge bg-success">
+                                    {% if filters.transmission == '1' %}RWD
+                                    {% elif filters.transmission == '2' %}FWD
+                                    {% elif filters.transmission == '3' %}AWD
+                                    {% else %}Front{% endif %}
+                                </span>
+                            </div>
+                            <div class="col-md-4">
+                                <small class="text-muted d-block">Includes</small>
+                                {% if filters.crashed == '1' %}<span class="badge bg-warning text-dark me-1">Crashed</span>{% endif %}
+                                {% if filters.painted == '1' %}<span class="badge bg-warning text-dark me-1">Painted</span>{% endif %}
+                                {% if filters.for_spare_parts == '1' %}<span class="badge bg-danger me-1">Spare Parts</span>{% endif %}
+                                {% if filters.crashed != '1' and filters.painted != '1' and filters.for_spare_parts != '1' %}
+                                    <span class="badge bg-success">Clean Only</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if filters.brand or filters.city %}
+                        <div class="row mt-2">
+                            {% if filters.brand %}
+                            <div class="col-md-3">
+                                <small class="text-muted d-block">Brand</small>
+                                <span class="badge bg-info">{{ filters.brand }}</span>
+                            </div>
+                            {% endif %}
+                            {% if filters.city %}
+                            <div class="col-md-3">
+                                <small class="text-muted d-block">City</small>
+                                <span class="badge bg-primary">{{ filters.city }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted d-block">Search URL</small>
+                        <div class="border rounded p-2 bg-light">
+                            <small class="font-monospace text-break">{{ current_url }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Cars and Live Log -->
+<div class="row">
+    <!-- Recent Cars -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-list-ul"></i> Recent Cars Found
+                </h5>
+                <a href="{{ url_for('cars_page') }}" class="btn btn-outline-primary btn-sm">
+                    View All <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            <div class="card-body">
+                {% if recent_cars %}
+                    <div class="row">
+                        {% for car in recent_cars[:6] %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card car-card">
+                                    {% if car.image_url %}
+                                        <img src="{{ car.image_url }}" class="card-img-top car-image" alt="Car Image">
+                                    {% endif %}
+                                    <div class="card-body p-3">
+                                        <h6 class="card-title">{{ car.title }}</h6>
+                                        <div class="row text-sm">
+                                            <div class="col-6">
+                                                <strong>{{ car.price }}</strong>
+                                            </div>
+                                            <div class="col-6 text-end">
+                                                {{ car.year }}
+                                            </div>
+                                        </div>
+                                        <div class="row text-muted small mt-1">
+                                            <div class="col-6">{{ car.mileage }}</div>
+                                            <div class="col-6 text-end">{{ car.engine }}</div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <a href="{{ car.url }}" target="_blank" class="btn btn-primary btn-sm">
+                                                <i class="bi bi-box-arrow-up-right"></i> View
+                                            </a>
+                                            <small class="text-muted ms-2">
+                                                {% if car.notified %}
+                                                    <i class="bi bi-telegram text-success"></i>
+                                                {% else %}
+                                                    <i class="bi bi-circle text-muted"></i>
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-car-front" style="font-size: 3rem;"></i>
+                        <h6 class="mt-2">No cars found yet</h6>
+                        <p>Start monitoring to find new cars!</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Live Log -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-terminal"></i> Live Log
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="log-container" id="log-container">
+                    <div>🚗 Turbo.az Car Monitor - Ready</div>
+                    <div>📱 Web dashboard initialized</div>
+                    {% if bot_configured %}
+                        <div>✅ Telegram bot configured</div>
+                    {% else %}
+                        <div>⚠️ Telegram bot not configured</div>
+                    {% endif %}
+                    <div>🔄 Waiting for commands...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function startMonitoring() {
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        
+        startBtn.disabled = true;
+        startBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Starting...';
+        
+        fetch('/api/start_monitoring', {
+            method: 'POST',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Success', data.message, 'success');
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                updateMonitoringStatus(true);
+            } else {
+                showToast('Error', data.message, 'danger');
+                startBtn.disabled = false;
+            }
+            startBtn.innerHTML = '<i class="bi bi-play-fill"></i> Start Monitoring';
+        })
+        .catch(error => {
+            showToast('Error', 'Failed to start monitoring', 'danger');
+            startBtn.disabled = false;
+            startBtn.innerHTML = '<i class="bi bi-play-fill"></i> Start Monitoring';
+        });
+    }
+    
+    function stopMonitoring() {
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        
+        stopBtn.disabled = true;
+        stopBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Stopping...';
+        
+        fetch('/api/stop_monitoring', {
+            method: 'POST',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Success', data.message, 'success');
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                updateMonitoringStatus(false);
+            } else {
+                showToast('Error', data.message, 'danger');
+                stopBtn.disabled = false;
+            }
+            stopBtn.innerHTML = '<i class="bi bi-stop-fill"></i> Stop Monitoring';
+        })
+        .catch(error => {
+            showToast('Error', 'Failed to stop monitoring', 'danger');
+            stopBtn.disabled = false;
+            stopBtn.innerHTML = '<i class="bi bi-stop-fill"></i> Stop Monitoring';
+        });
+    }
+    
+    function testScraper() {
+        showToast('Testing', 'Testing scraper...', 'info');
+        
+        fetch('/api/test_scraper')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Scraper Test', data.message, 'success');
+            } else {
+                showToast('Scraper Test Failed', data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showToast('Error', 'Failed to test scraper', 'danger');
+        });
+    }
+    
+    function testTelegram() {
+        showToast('Testing', 'Testing Telegram bot...', 'info');
+        
+        fetch('/api/test_telegram')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Telegram Test', data.message, 'success');
+            } else {
+                showToast('Telegram Test Failed', data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showToast('Error', 'Failed to test Telegram', 'danger');
+        });
+    }
+</script>
+{% endblock %} 

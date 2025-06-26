@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+
+{% block title %}{{ car.title }} - Car Details{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('cars_page') }}">Cars</a></li>
+                    <li class="breadcrumb-item active">{{ car.title }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Car Images -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    {% if car.all_images %}
+                    <div id="carCarousel" class="carousel slide" data-bs-ride="carousel">
+                        <div class="carousel-indicators">
+                            {% for image in car.all_images %}
+                            <button type="button" data-bs-target="#carCarousel" data-bs-slide-to="{{ loop.index0 }}" 
+                                    {% if loop.first %}class="active"{% endif %}></button>
+                            {% endfor %}
+                        </div>
+                        <div class="carousel-inner">
+                            {% for image in car.all_images %}
+                            <div class="carousel-item {% if loop.first %}active{% endif %}">
+                                <img src="{{ image }}" class="d-block w-100" alt="Car Image {{ loop.index }}" 
+                                     style="max-height: 500px; object-fit: contain;">
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#carCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#carCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                    </div>
+                    {% elif car.image_url %}
+                    <img src="{{ car.image_url }}" class="img-fluid" alt="{{ car.title }}" 
+                         style="max-height: 500px; width: 100%; object-fit: contain;">
+                    {% else %}
+                    <div class="text-center py-5 bg-light">
+                        <i class="fas fa-car fa-5x text-muted"></i>
+                        <p class="text-muted mt-3">No images available</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Description -->
+            {% if car.description %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Description</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">{{ car.description }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Car Details -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">{{ car.title }}</h4>
+                </div>
+                <div class="card-body">
+                    <div class="price-display mb-3">
+                        <h3 class="text-primary">{{ car.price }}</h3>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <a href="{{ car.url }}" target="_blank" class="btn btn-primary btn-lg w-100">
+                                <i class="fas fa-external-link-alt"></i> View on Turbo.az
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Key Details -->
+                    <div class="row g-2 mb-3">
+                        {% if car.year %}
+                        <div class="col-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center py-2">
+                                    <small class="text-muted">Year</small>
+                                    <div class="fw-bold">{{ car.year }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if car.mileage %}
+                        <div class="col-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center py-2">
+                                    <small class="text-muted">Mileage</small>
+                                    <div class="fw-bold">{{ car.mileage }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if car.engine or car.engine_details %}
+                        <div class="col-12">
+                            <div class="card bg-light">
+                                <div class="card-body text-center py-2">
+                                    <small class="text-muted">Engine</small>
+                                    <div class="fw-bold">{{ car.engine_details or car.engine }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Specifications -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-cogs"></i> Specifications</h5>
+                </div>
+                <div class="card-body">
+                    <div class="specification-list">
+                        {% if car.city %}
+                        <div class="spec-item">
+                            <span class="spec-label">📍 City:</span>
+                            <span class="spec-value">{{ car.city }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if car.brand %}
+                        <div class="spec-item">
+                            <span class="spec-label">🚗 Brand:</span>
+                            <span class="spec-value">{{ car.brand }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if car.model %}
+                        <div class="spec-item">
+                            <span class="spec-label">🏷️ Model:</span>
+                            <span class="spec-value">{{ car.model }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if car.body_type %}
+                        <div class="spec-item">
+                            <span class="spec-label">🚙 Body Type:</span>
+                            <span class="spec-value">{{ car.body_type }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if car.color %}
+                        <div class="spec-item">
+                            <span class="spec-label">🎨 Color:</span>
+                            <span class="spec-value">{{ car.color }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if car.transmission %}
+                        <div class="spec-item">
+                            <span class="spec-label">🔧 Transmission:</span>
+                            <span class="spec-value">{{ car.transmission }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if car.drivetrain %}
+                        <div class="spec-item">
+                            <span class="spec-label">⚙️ Drivetrain:</span>
+                            <span class="spec-value">{{ car.drivetrain }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if car.is_new %}
+                        <div class="spec-item">
+                            <span class="spec-label">✨ New:</span>
+                            <span class="spec-value">{{ car.is_new }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if car.seats %}
+                        <div class="spec-item">
+                            <span class="spec-label">💺 Seats:</span>
+                            <span class="spec-value">{{ car.seats }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if car.owners %}
+                        <div class="spec-item">
+                            <span class="spec-label">👥 Owners:</span>
+                            <span class="spec-value">{{ car.owners }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if car.condition_info %}
+                        <div class="spec-item">
+                            <span class="spec-label">🔍 Condition:</span>
+                            <span class="spec-value">{{ car.condition_info }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if car.market %}
+                        <div class="spec-item">
+                            <span class="spec-label">🌍 Market:</span>
+                            <span class="spec-value">{{ car.market }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="spec-item">
+                            <span class="spec-label">📅 Found:</span>
+                            <span class="spec-value">{{ car.found_at.split('T')[0] }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Specifications from Raw Data -->
+            {% if car.specifications %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-list"></i> All Specifications</h6>
+                </div>
+                <div class="card-body">
+                    <div class="specification-list small">
+                        {% for key, value in car.specifications.items() %}
+                        {% if value and value != 'N/A' %}
+                        <div class="spec-item">
+                            <span class="spec-label">{{ key }}:</span>
+                            <span class="spec-value">{{ value }}</span>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.specification-list .spec-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.specification-list .spec-item:last-child {
+    border-bottom: none;
+}
+
+.spec-label {
+    font-weight: 500;
+    color: #666;
+    flex: 0 0 45%;
+}
+
+.spec-value {
+    text-align: right;
+    font-weight: 600;
+    color: #333;
+    flex: 1;
+}
+
+.price-display {
+    text-align: center;
+    padding: 15px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 8px;
+}
+
+.carousel-item img {
+    border-radius: 8px;
+}
+
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+}
+
+.bg-light .card-body {
+    background: #f8f9fa;
+}
+</style>
+{% endblock %} 

@@ -1,0 +1,512 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Turbo.az Car Monitor{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-gear"></i> Application Settings
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>System Configuration</h6>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Check Interval</label>
+                            <div class="input-group">
+                                <span class="input-group-text">{{ check_interval }}</span>
+                                <span class="input-group-text">minutes</span>
+                            </div>
+                            <small class="text-muted">How often to check for new cars</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Telegram Bot Token</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    {% if bot_token_configured %}
+                                        <i class="bi bi-check-circle text-success"></i>
+                                    {% else %}
+                                        <i class="bi bi-x-circle text-danger"></i>
+                                    {% endif %}
+                                </span>
+                                <input type="password" class="form-control" 
+                                       value="{% if bot_token_configured %}••••••••••••••••{% endif %}" 
+                                       readonly>
+                            </div>
+                            <small class="text-muted">
+                                {% if bot_token_configured %}Configured{% else %}Not configured{% endif %}
+                            </small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Chat ID</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    {% if chat_id_configured %}
+                                        <i class="bi bi-check-circle text-success"></i>
+                                    {% else %}
+                                        <i class="bi bi-x-circle text-danger"></i>
+                                    {% endif %}
+                                </span>
+                                <input type="text" class="form-control" 
+                                       value="{% if chat_id_configured %}••••••••••••••••{% endif %}" 
+                                       readonly>
+                            </div>
+                            <small class="text-muted">
+                                {% if chat_id_configured %}Configured{% else %}Not configured{% endif %}
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-funnel"></i> Search Filters</h6>
+                        <div class="alert alert-info">
+                            <small><i class="bi bi-info-circle"></i> Customize your car search criteria below. Changes are applied immediately.</small>
+                        </div>
+                        
+                        <form id="filterForm">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Price From (AZN)</label>
+                                        <input type="number" class="form-control" id="price_from" 
+                                               value="{{ filters.price_from }}" min="0" step="1000">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Price To (AZN)</label>
+                                        <input type="number" class="form-control" id="price_to" 
+                                               value="{{ filters.price_to }}" min="0" step="1000">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Year From</label>
+                                        <input type="number" class="form-control" id="year_from" 
+                                               value="{{ filters.year_from }}" min="1990" max="2024">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Year To</label>
+                                        <input type="number" class="form-control" id="year_to" 
+                                               value="{{ filters.year_to }}" min="1990" max="2024">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Engine From (L)</label>
+                                        <input type="number" class="form-control" id="engine_from" 
+                                               value="{% if filters.engine_from %}{{ (filters.engine_from|int / 1000) if filters.engine_from|int > 100 else filters.engine_from }}{% endif %}" min="0" max="10" step="0.1">
+                                        <small class="text-muted">e.g. 2.3 for 2.3L engine</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Engine To (L)</label>
+                                        <input type="number" class="form-control" id="engine_to" 
+                                               value="{% if filters.engine_to %}{{ (filters.engine_to|int / 1000) if filters.engine_to|int > 100 else filters.engine_to }}{% endif %}" min="0" max="10" step="0.1">
+                                        <small class="text-muted">Leave empty for no upper limit</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Max Mileage (km)</label>
+                                        <input type="number" class="form-control" id="mileage_to" 
+                                               value="{{ filters.mileage_to }}" min="0" step="10000">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Condition</label>
+                                        <select class="form-select" id="condition">
+                                            <option value="all" {% if filters.condition == 'all' %}selected{% endif %}>All (New & Used)</option>
+                                            <option value="new" {% if filters.condition == 'new' %}selected{% endif %}>New Only</option>
+                                            <option value="used" {% if filters.condition == 'used' %}selected{% endif %}>Used Only</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Currency</label>
+                                        <select class="form-select" id="currency">
+                                            <option value="azn" {% if filters.currency == 'azn' %}selected{% endif %}>AZN (Azerbaijani Manat)</option>
+                                            <option value="usd" {% if filters.currency == 'usd' %}selected{% endif %}>USD (US Dollar)</option>
+                                            <option value="eur" {% if filters.currency == 'eur' %}selected{% endif %}>EUR (Euro)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Gear Type</label>
+                                        <select class="form-select" id="gear">
+                                            <option value="3" {% if filters.gear == '3' %}selected{% endif %}>Manual (Default)</option>
+                                            <option value="1" {% if filters.gear == '1' %}selected{% endif %}>Automatic</option>
+                                            <option value="2" {% if filters.gear == '2' %}selected{% endif %}>Manual Only</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Drivetrain</label>
+                                        <select class="form-select" id="transmission">
+                                            <option value="2" {% if filters.transmission == '2' %}selected{% endif %}>Front Wheel Drive</option>
+                                            <option value="1" {% if filters.transmission == '1' %}selected{% endif %}>Rear Wheel Drive</option>
+                                            <option value="3" {% if filters.transmission == '3' %}selected{% endif %}>All Wheel Drive</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="mb-3">
+                                        <label class="form-label">Car Condition Options</label>
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="crashed" 
+                                                           {% if filters.crashed == '1' %}checked{% endif %}>
+                                                    <label class="form-check-label" for="crashed">
+                                                        Include Crashed Cars
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="painted" 
+                                                           {% if filters.painted == '1' %}checked{% endif %}>
+                                                    <label class="form-check-label" for="painted">
+                                                        Include Painted Cars
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="for_spare_parts" 
+                                                           {% if filters.for_spare_parts == '1' %}checked{% endif %}>
+                                                    <label class="form-check-label" for="for_spare_parts">
+                                                        Include Cars for Spare Parts
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <small class="text-muted">Check to include these types of cars in your search</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Brand (Optional)</label>
+                                        <input type="text" class="form-control" id="brand" 
+                                               value="{{ filters.brand }}" placeholder="e.g. Toyota, BMW">
+                                        <small class="text-muted">Leave empty for all brands</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">City (Optional)</label>
+                                        <input type="text" class="form-control" id="city" 
+                                               value="{{ filters.city }}" placeholder="e.g. Bakı, Sumqayıt">
+                                        <small class="text-muted">Leave empty for all cities</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <button type="button" class="btn btn-outline-secondary me-md-2" onclick="resetFilters()">
+                                    <i class="bi bi-arrow-clockwise"></i> Reset to Defaults
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-check-lg"></i> Save Filters
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <div class="mt-3">
+                            <div class="alert alert-light">
+                                <small>
+                                    <strong>Current URL:</strong> 
+                                    <span id="currentUrl" class="font-monospace text-break">Loading...</span>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="row">
+                    <div class="col-12">
+                        <h6>Environment Configuration</h6>
+                        <p class="text-muted">To configure your credentials, edit the <code>.env</code> file:</p>
+                        
+                        <div class="card bg-dark text-light">
+                            <div class="card-body">
+                                <pre class="mb-0"><code># .env file
+BOT_TOKEN=your_bot_token_from_botfather
+CHAT_ID=your_chat_id_from_userinfobot</code></pre>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <h6>Getting Your Credentials:</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h6><i class="bi bi-robot"></i> Bot Token</h6>
+                                            <ol class="small">
+                                                <li>Open Telegram and search for <a href="https://t.me/BotFather" target="_blank">@BotFather</a></li>
+                                                <li>Send <code>/newbot</code></li>
+                                                <li>Follow the instructions</li>
+                                                <li>Copy the token provided</li>
+                                            </ol>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h6><i class="bi bi-person"></i> Chat ID</h6>
+                                            <ol class="small">
+                                                <li>Search for <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a></li>
+                                                <li>Start a chat with the bot</li>
+                                                <li>Your chat ID will be displayed</li>
+                                                <li>Copy the numeric ID</li>
+                                            </ol>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    updateCurrentUrl();
+    
+    // Handle filter form submission
+    document.getElementById('filterForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        saveFilters();
+    });
+});
+
+function updateCurrentUrl() {
+    const filters = getFormData();
+    
+    // Build URL in the exact format that will be used
+    let url = 'https://turbo.az/autos?q%5Bsort%5D=&q%5Bmake%5D%5B%5D=&q%5Bmodel%5D%5B%5D=';
+    
+    // Condition
+    if (filters.condition === 'used') {
+        url += '&q%5Bused%5D=1';
+    } else if (filters.condition === 'new') {
+        url += '&q%5Bused%5D=0';
+    } else {
+        url += '&q%5Bused%5D=1'; // default to used
+    }
+    
+    url += '&q%5Bregion%5D%5B%5D=';
+    
+    // Price
+    if (filters.price_from) {
+        url += `&q%5Bprice_from%5D=${filters.price_from}`;
+    } else {
+        url += '&q%5Bprice_from%5D=';
+    }
+    if (filters.price_to) {
+        url += `&q%5Bprice_to%5D=${filters.price_to}`;
+    } else {
+        url += '&q%5Bprice_to%5D=';
+    }
+    
+    url += `&q%5Bcurrency%5D=${filters.currency || 'azn'}`;
+    url += '&q%5Bloan%5D=0&q%5Bbarter%5D=0&q%5Bcategory%5D%5B%5D=&q%5Bcategory%5D%5B%5D=21';
+    
+    // Year
+    if (filters.year_from) {
+        url += `&q%5Byear_from%5D=${filters.year_from}`;
+    } else {
+        url += '&q%5Byear_from%5D=';
+    }
+    if (filters.year_to) {
+        url += `&q%5Byear_to%5D=${filters.year_to}`;
+    } else {
+        url += '&q%5Byear_to%5D=';
+    }
+    
+    url += '&q%5Bcolor%5D%5B%5D=&q%5Bfuel_type%5D%5B%5D=&q%5Bgear%5D%5B%5D=';
+    url += `&q%5Bgear%5D%5B%5D=${filters.gear || '3'}`;
+    url += '&q%5Btransmission%5D%5B%5D=';
+    url += `&q%5Btransmission%5D%5B%5D=${filters.transmission || '2'}`;
+    
+    // Engine (convert to cc)
+    if (filters.engine_from) {
+        let engineFrom = parseFloat(filters.engine_from);
+        if (engineFrom < 100) engineFrom = engineFrom * 1000; // convert L to cc
+        url += `&q%5Bengine_volume_from%5D=${Math.round(engineFrom)}`;
+    } else {
+        url += '&q%5Bengine_volume_from%5D=';
+    }
+    if (filters.engine_to) {
+        let engineTo = parseFloat(filters.engine_to);
+        if (engineTo < 100) engineTo = engineTo * 1000; // convert L to cc
+        url += `&q%5Bengine_volume_to%5D=${Math.round(engineTo)}`;
+    } else {
+        url += '&q%5Bengine_volume_to%5D=';
+    }
+    
+    url += '&q%5Bpower_from%5D=&q%5Bpower_to%5D=&q%5Bmileage_from%5D=';
+    
+    // Mileage
+    if (filters.mileage_to) {
+        url += `&q%5Bmileage_to%5D=${filters.mileage_to}`;
+    } else {
+        url += '&q%5Bmileage_to%5D=';
+    }
+    
+    url += '&q%5Bonly_shops%5D=&q%5Bprior_owners_count%5D%5B%5D=&q%5Bseats_count%5D%5B%5D=&q%5Bmarket%5D%5B%5D=';
+    
+    // Condition options
+    url += `&q%5Bcrashed%5D=${filters.crashed || '1'}`;
+    url += `&q%5Bpainted%5D=${filters.painted || '1'}`;
+    url += `&q%5Bfor_spare_parts%5D=${filters.for_spare_parts || '0'}`;
+    url += '&q%5Bavailability_status%5D=';
+    
+    document.getElementById('currentUrl').textContent = url;
+}
+
+function getFormData() {
+    return {
+        price_from: document.getElementById('price_from').value,
+        price_to: document.getElementById('price_to').value,
+        year_from: document.getElementById('year_from').value,
+        year_to: document.getElementById('year_to').value,
+        engine_from: document.getElementById('engine_from').value,
+        engine_to: document.getElementById('engine_to').value,
+        mileage_to: document.getElementById('mileage_to').value,
+        condition: document.getElementById('condition').value,
+        currency: document.getElementById('currency').value,
+        crashed: document.getElementById('crashed').checked ? '1' : '0',
+        painted: document.getElementById('painted').checked ? '1' : '0',
+        for_spare_parts: document.getElementById('for_spare_parts').checked ? '1' : '0',
+        gear: document.getElementById('gear').value,
+        transmission: document.getElementById('transmission').value,
+        brand: document.getElementById('brand').value,
+        city: document.getElementById('city').value,
+    };
+}
+
+function saveFilters() {
+    const submitBtn = document.querySelector('#filterForm button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving...';
+    submitBtn.disabled = true;
+    
+    fetch('/api/save_filters', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(getFormData())
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            submitBtn.innerHTML = '<i class="bi bi-check-lg"></i> Saved!';
+            submitBtn.classList.remove('btn-primary');
+            submitBtn.classList.add('btn-success');
+            
+            updateCurrentUrl();
+            
+            // Show success message
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success alert-dismissible fade show mt-3';
+            alert.innerHTML = `
+                <i class="bi bi-check-circle"></i> Filter settings saved successfully!
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.getElementById('filterForm').appendChild(alert);
+            
+            setTimeout(() => {
+                submitBtn.innerHTML = originalText;
+                submitBtn.classList.remove('btn-success');
+                submitBtn.classList.add('btn-primary');
+                submitBtn.disabled = false;
+            }, 2000);
+        } else {
+            throw new Error(data.message);
+        }
+    })
+    .catch(error => {
+        submitBtn.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Error';
+        submitBtn.classList.remove('btn-primary');
+        submitBtn.classList.add('btn-danger');
+        
+        // Show error message
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-danger alert-dismissible fade show mt-3';
+        alert.innerHTML = `
+            <i class="bi bi-exclamation-triangle"></i> Error: ${error.message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.getElementById('filterForm').appendChild(alert);
+        
+        setTimeout(() => {
+            submitBtn.innerHTML = originalText;
+            submitBtn.classList.remove('btn-danger');
+            submitBtn.classList.add('btn-primary');
+            submitBtn.disabled = false;
+        }, 3000);
+    });
+}
+
+function resetFilters() {
+    document.getElementById('price_from').value = '17000';
+    document.getElementById('price_to').value = '22000';
+    document.getElementById('year_from').value = '';
+    document.getElementById('year_to').value = '2015';
+    document.getElementById('engine_from').value = '2.3';
+    document.getElementById('engine_to').value = '';
+    document.getElementById('mileage_to').value = '150000';
+    document.getElementById('condition').value = 'used';
+    document.getElementById('brand').value = '';
+    document.getElementById('city').value = '';
+    
+    updateCurrentUrl();
+}
+
+// Update URL preview when inputs change
+document.getElementById('filterForm').addEventListener('input', updateCurrentUrl);
+document.getElementById('condition').addEventListener('change', updateCurrentUrl);
+</script>
+{% endblock %} 

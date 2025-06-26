@@ -1,0 +1,13 @@
+python-telegram-bot==20.7
+requests==2.31.0
+beautifulsoup4==4.12.2
+schedule==1.2.0
+python-dotenv==1.0.0
+lxml==4.9.3
+flask==3.0.0
+flask-socketio==5.3.6
+eventlet==0.33.3
+python-socketio==5.9.0
+python-engineio==4.7.1
+httpx==0.25.2
+fake-useragent==1.4.0 
