@@ -108,17 +108,17 @@ class DatabaseManager:
                 json.dumps(car.specifications) if car.specifications else None
             )
 
+            # Try to update existing record first (to avoid resetting found_at)
             cursor.execute(
                 """
-                INSERT OR REPLACE INTO found_cars 
-                (car_id, title, price, year, mileage, engine, url, image_url,
-                 city, brand, model, body_type, color, engine_details, transmission,
-                 drivetrain, is_new, seats, owners, condition_info, market, description,
-                 all_images, specifications, notified)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                UPDATE found_cars SET 
+                    title=?, price=?, year=?, mileage=?, engine=?, url=?, image_url=?,
+                    city=?, brand=?, model=?, body_type=?, color=?, engine_details=?, transmission=?,
+                    drivetrain=?, is_new=?, seats=?, owners=?, condition_info=?, market=?, description=?,
+                    all_images=?, specifications=?, notified=?
+                WHERE car_id=?
             """,
                 (
-                    car.car_id,
                     car.title,
                     car.price,
                     car.year,
@@ -143,8 +143,49 @@ class DatabaseManager:
                     all_images_json,
                     specifications_json,
                     notified,
+                    car.car_id,
                 ),
             )
+
+            if cursor.rowcount == 0:
+                # No existing row; insert new
+                cursor.execute(
+                    """
+                    INSERT INTO found_cars 
+                    (car_id, title, price, year, mileage, engine, url, image_url,
+                     city, brand, model, body_type, color, engine_details, transmission,
+                     drivetrain, is_new, seats, owners, condition_info, market, description,
+                     all_images, specifications, notified)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                    (
+                        car.car_id,
+                        car.title,
+                        car.price,
+                        car.year,
+                        car.mileage,
+                        car.engine,
+                        car.url,
+                        car.image_url,
+                        car.city,
+                        car.brand,
+                        car.model,
+                        car.body_type,
+                        car.color,
+                        car.engine_details,
+                        car.transmission,
+                        car.drivetrain,
+                        car.is_new,
+                        car.seats,
+                        car.owners,
+                        car.condition,
+                        car.market,
+                        car.description,
+                        all_images_json,
+                        specifications_json,
+                        notified,
+                    ),
+                )
             conn.commit()
         except sqlite3.Error as e:
             logger.error(f"Error saving car: {e}")
@@ -537,8 +578,18 @@ class AppCarMonitor(CarMonitor):
                         )
 
                         # Mark as notified in database
-                        for car in new_cars:
-                            db.save_car(car, notified=True)
+                        conn = sqlite3.connect(db.db_path)
+                        cur = conn.cursor()
+                        try:
+                            cur.executemany(
+                                "UPDATE found_cars SET notified=1 WHERE car_id=?",
+                                [(car.car_id,) for car in new_cars],
+                            )
+                            conn.commit()
+                        except Exception as e:
+                            logger.error(f"Failed to mark cars as notified: {e}")
+                        finally:
+                            conn.close()
 
                     except Exception as e:
                         db.log_message(
@@ -855,6 +906,11 @@ def test_telegram():
 
     except Exception as e:
         return jsonify({"success": False, "message": f"Telegram test failed: {str(e)}"})
+    finally:
+        try:
+            loop.close()
+        except Exception:
+            pass
 
 
 @app.route("/api/status")

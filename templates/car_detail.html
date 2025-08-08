@@ -219,7 +219,7 @@
                         
                         <div class="spec-item">
                             <span class="spec-label">📅 Found:</span>
-                            <span class="spec-value">{{ car.found_at.split('T')[0] }}</span>
+                            <span class="spec-value">{{ car.found_at.split(' ')[0] if car.found_at else '' }}</span>
                         </div>
                     </div>
                 </div>

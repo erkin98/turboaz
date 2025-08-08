@@ -5,7 +5,7 @@ from typing import List, Set
 
 from bot import TurboAzBot
 from car_scraper import CarListing, TurboAzScraper
-from config import KNOWN_CARS_FILE
+from config import BOT_TOKEN, CHAT_ID, KNOWN_CARS_FILE
 
 # Set up logging
 logging.basicConfig(
@@ -17,7 +17,16 @@ logger = logging.getLogger(__name__)
 class CarMonitor:
     def __init__(self):
         self.scraper = TurboAzScraper()
-        self.bot = TurboAzBot()
+        # Telegram is optional: only initialize when credentials are provided
+        if BOT_TOKEN and CHAT_ID:
+            try:
+                self.bot = TurboAzBot()
+            except Exception as e:
+                logger.warning(f"Telegram disabled due to configuration error: {e}")
+                self.bot = None
+        else:
+            logger.info("Telegram not configured; running in web-only mode")
+            self.bot = None
         self.known_cars: Set[str] = set()
         self.current_url = None  # Store the current URL
         self.load_known_cars()
@@ -25,7 +34,7 @@ class CarMonitor:
     def set_url(self, url: str):
         """Set the URL to use for monitoring."""
         self.current_url = url
-        logger.info(f"Updated monitoring URL")
+        logger.info(f"Updated monitoring URL: {url}")
 
     def load_known_cars(self):
         """Load previously seen car IDs from file."""
@@ -86,11 +95,14 @@ class CarMonitor:
             if new_cars:
                 logger.info(f"Found {len(new_cars)} new cars!")
 
-                # Send notifications for new cars
-                successful = await self.bot.send_multiple_cars(new_cars)
-                logger.info(
-                    f"Successfully sent {successful}/{len(new_cars)} notifications"
-                )
+                # Send notifications for new cars (if Telegram is enabled)
+                if self.bot:
+                    successful = await self.bot.send_multiple_cars(new_cars)
+                    logger.info(
+                        f"Successfully sent {successful}/{len(new_cars)} notifications"
+                    )
+                else:
+                    logger.info("Telegram disabled; skipping notifications")
 
                 return len(new_cars)
             else:
@@ -99,7 +111,11 @@ class CarMonitor:
 
         except Exception as e:
             logger.error(f"Error checking for new cars: {e}")
-            await self.bot.send_status_message(f"Error occurred: {str(e)}")
+            try:
+                if self.bot:
+                    await self.bot.send_status_message(f"Error occurred: {str(e)}")
+            except Exception:
+                pass
             return 0
 
     async def initialize_monitoring(self, url: str = None) -> bool:
@@ -110,10 +126,11 @@ class CarMonitor:
         if url:
             self.set_url(url)
 
-        # Test bot connection
-        if not await self.bot.test_connection():
-            logger.error("Failed to connect to Telegram bot")
-            return False
+        # Test bot connection if enabled
+        if self.bot:
+            if not await self.bot.test_connection():
+                logger.error("Failed to connect to Telegram bot")
+                return False
 
         # If this is the first run, populate known cars without sending notifications
         if not self.known_cars:

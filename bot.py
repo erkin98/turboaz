@@ -5,8 +5,6 @@ import os
 from typing import List
 
 import httpx
-from telegram import Bot
-from telegram.error import TelegramError
 
 from car_scraper import CarListing
 from config import BOT_TOKEN, CHAT_ID
@@ -156,13 +154,19 @@ class TurboAzBot:
     async def send_status_message(self, message: str):
         """Send a status message to the chat."""
         try:
-            await self.bot.send_message(
-                chat_id=self.chat_id,
-                text=f"🤖 *Bot Status:* {message}",
-                parse_mode="Markdown",
-            )
+            url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
+            data = {
+                "chat_id": self.chat_id,
+                "text": f"🤖 *Bot Status:* {message}",
+                "parse_mode": "Markdown",
+            }
+
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url, data=data)
+                response.raise_for_status()
+
             logger.info(f"Sent status message: {message}")
-        except TelegramError as e:
+        except Exception as e:
             logger.error(f"Failed to send status message: {e}")
 
     async def test_connection(self) -> bool:

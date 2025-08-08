@@ -106,7 +106,7 @@
                     
                     <!-- Found date -->
                     <small class="text-muted mb-3">
-                        <i class="fas fa-clock"></i> Found: {{ car.found_at.split('T')[0] }}
+                        <i class="fas fa-clock"></i> Found: {{ car.found_at.split(' ')[0] if car.found_at else '' }}
                         {% if car.notified %}
                         <span class="badge bg-success ms-2">Notified</span>
                         {% endif %}
